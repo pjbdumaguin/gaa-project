@@ -55,8 +55,13 @@ walk2(
     if(!file.exists(str_c(directory, new_file))) {
       if(str_detect(basename(x), "2020")) {
         process_gaa_2020(x, y)
+      } else if(str_detect(basename(x), "2024")) { #temporary fix
+        gaa <- SheetReader::read_xlsx(path = x,
+                                      col_types = c(rep("text", 19)))
+        print(glue::glue("converting {old_file} to {new_file}"))
+        write_csv(gaa, str_c(directory, new_file))
       } else {
-        gaa <- SheetReader::read_xlsx(path = x, sheet = y)
+        gaa <- SheetReader::read_xlsx(path = x)
         print(glue::glue("converting {old_file} to {new_file}"))
         write_csv(gaa, str_c(directory, new_file))
       }
