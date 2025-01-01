@@ -37,10 +37,11 @@ process_gaa_2020 <- function(path, sheet) {
     .f = \(x) read_xls(path = path, sheet = x, skip = 1),
     .else = \(x) read_xls(path = path, sheet = x)
   ) |> bind_rows()
+  
   old_file <- basename(path)
-  new_file <- str_replace(old_file, "xls", "csv")
+  new_file <- str_replace_all(old_file, ".*(\\d{4}).*", "\\1-GAA.csv")
+  print(glue::glue("converting {old_file} to {new_file}"))
   write_csv(gaa_2020, str_c(directory, new_file))
-  print(glue::glue("{old_file} converted to {new_file}"))
 }
 
 # Here, I am using the SheetReader package to load the excel files.
@@ -48,15 +49,16 @@ process_gaa_2020 <- function(path, sheet) {
 walk2(
   .x = file_paths, .y = xl_sheets,
   .f = \(x, y) {
-    if(!file.exists(x)) {
+    old_file <- basename(x)
+    new_file <- str_replace_all(old_file, ".*(\\d{4}).*", "\\1-GAA.csv")
+    
+    if(!file.exists(str_c(directory, new_file))) {
       if(str_detect(basename(x), "2020")) {
         process_gaa_2020(x, y)
       } else {
         gaa <- SheetReader::read_xlsx(path = x, sheet = y)
-        old_file <- basename(x)
-        new_file <- str_replace(old_file, "xlsx", "csv")
+        print(glue::glue("converting {old_file} to {new_file}"))
         write_csv(gaa, str_c(directory, new_file))
-        print(glue::glue("{old_file} converted to {new_file}"))
       }
     }
     print("done")
