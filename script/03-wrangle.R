@@ -1,6 +1,11 @@
+library(tidyverse)
+
+GAA_2024 <- read_csv_chunked("processed/csv/2024-GAA.csv",
+                   DataFrameCallback$new(function(x, pos) x),
+                   chunk_size = 10000)
+
 # Select and filter to target data
-confid_expen <-
-  GAA_2024 %>%
+confid_expen <- GAA_2024 %>%
   select(ends_with("DSC"), AMT) %>% 
   filter(UACS_SOBJ_DSC == "Confidential Expenses", AMT > 0) %>%
   summarise(amount = sum(AMT), .by = c(UACS_DPT_DSC, UACS_AGY_DSC))
@@ -40,5 +45,5 @@ confid_expen %<>%
   arrange(agency, amount, .by_group = TRUE)
 
 # Machine is weak; had to remove the main file object
-rm(GAA_2024)
-gc()
+# rm(GAA_2024)
+# gc()
