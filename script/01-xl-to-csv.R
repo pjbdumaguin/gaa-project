@@ -2,97 +2,91 @@ library(tidyverse)
 library(readxl)
 
 # Prepare the files to be converted
-file_paths <- list.files(path = "raw-file/gaa",
-                         pattern = ".*GAA.*",
-                         full.names = TRUE) |> 
-  set_names(\(x) str_extract(x, "\\d{4}") |> 
-              {\(x) str_c("gaa_", x)}())
+xl_paths <- list.files(path = "raw-file/gaa",
+                       pattern = ".*GAA.*",
+                       full.names = TRUE)
 
-#List sheet/s of every file
-xl_sheets <- file_paths |> 
-  map(\(path) excel_sheets(path))
+xl_paths <- xl_paths |> set_names(\(path) str_extract(path, "\\d{4}") |>
+                                    str_c("gaa_", yr = _))
 
-# Prepare the directory for converting files
-directory <- "processed/csv/"
-if (!dir.exists(directory)) dir.create(directory)
+# List sheet/s of every excel file
+xl_sheets <- xl_paths |> map(\(path) excel_sheets(path))
 
-# Prepare the base column names. This will be used as the basis on how the
-# proceeding CSVs should be written.
-if (file.exists(paste0(directory, "2020-GAA.csv"))) {
-  base_col_names <- colnames(read_csv(paste0(directory, "2020-GAA.csv")))
+# Prepare the directory for csv files
+csv_dir <- "processed/csv/"
+if (!dir.exists(csv_dir)) dir.create(csv_dir, recursive = TRUE)
+
+# Initialize base column names using the earliest excel document.
+# This will be used so that the resulting csv files will have uniform result.
+if (file.exists(paste0(csv_dir, "2020-GAA.csv"))) {
+  base_col_names <- colnames(read_csv(paste0(csv_dir, "2020-GAA.csv")))
 } else { 
   base_col_names <- NULL 
 }
 
-## Convert downloaded excel files to csv for further manipulation.
-# Special approach to 2020-GAA.xls.
-# Among the initial set of budget documents downloaded, the GAA for 2020 is
-# quite different: 1. It's in older format; 2. It has multiple sheets;
-# 3. Sheet 1 has extra headers
-process_gaa_2020 <- function(path, sheet) {
-  old_filename <- basename(path)
-  new_filename <- str_replace_all(old_filename, ".*(\\d{4}).*", "\\1-GAA.csv")
-  gaa_2020 <- map_if(
-    .x = sheet,
-    .p = \(x) str_equal(x, "Sheet 1"),
-    .f = \(x) {
-      print(glue::glue("reading {old_filename}, sheet {x}"))
-      read_xls(path = path, sheet = x, skip = 1)
+## Convert downloaded excel files
+
+# Processes older excel format, has multiple sheets, where the first
+# sheet has an extra header (2020-GAA.xls)
+process_xls <- function(path, sheets, xl_name, file_year, csv_name) {
+  csv_path <- str_c(csv_dir, csv_name)
+  map_if(
+    .x = sheets,
+    .p = \(sheet) str_equal(sheet, "Sheet 1"),
+    .f = \(sheet) {
+      print(glue::glue("reading {xl_name}, sheet: {sheet}"))
+      gaa <- read_xls(path = path, sheet = sheet, col_types = "text", skip = 1) |> 
+        mutate(YEAR = file_year, .before = 1)
+      print(glue::glue("appending {sheet} to {csv_name}"))
+      write_csv(gaa, csv_path, quote = "needed")
+      .GlobalEnv$base_col_names <- colnames(gaa)
     },
-    .else = \(x) {
-      print(glue::glue("reading {old_filename}, sheet {x}"))
-      read_xls(path = path, sheet = x)
+    .else = \(sheet) {
+      print(glue::glue("reading {xl_name}, sheet: {sheet}"))
+      gaa <- read_xls(path = path, sheet = sheet, col_types = "text") |> 
+        mutate(YEAR = file_year, .before = 1)
+      print(glue::glue("appending {sheet} to {csv_name}"))
+      write_csv(gaa, csv_path, append = TRUE, quote = "needed")
     }
-  ) |> 
-    bind_rows() |> 
-    mutate(YEAR = 2020, .before = 1)
-  
-  print(glue::glue("converting {old_filename} to {new_filename}"))
-  write_csv(gaa_2020, str_c(directory, new_filename), quote = "all")
-  
-  .GlobalEnv$base_col_names <- colnames(gaa_2020)
+  )
 }
 
-# Here, I am using the SheetReader package to load the excel files.
-# This is much more memory efficient than readxl.
-# Challenges: 1. See: Special approach to 2020-GAA.xls;
-# 2. 2021-GAA.xlsx has an extra header;
-# 3. SheetReader is having a hard time parsing particular values in
-# 2024-GAA.xlsx. My temporary(?) solution is to parse all of it to text and
-# let the more powerful packages assign the right data type when reading it.
-process_gaa <- function(path, sheet) {
-  old_filename <- basename(path)
-  new_filename <- str_replace_all(old_filename, ".*(\\d{4}).*", "\\1-GAA.csv")
+# using memory efficient SheetReader package to load the excel files.
+# cons: type guessing is not as robust as readxl, parsing it all as text
+process_xlsx <- function(path, sheet, xl_name, file_year, csv_name) {
+  col_types <- c(rep("text", 20)) # SheetReader requires character vector
+  print(glue::glue("reading {xl_name}, sheet: {sheet}"))
+  gaa <- if(file_year != 2021) {
+    SheetReader::read_xlsx(path = path, col_types = col_types)
+  } else { # For files that have extra headers;
+    SheetReader::read_xlsx(path = path, skip_rows = 1,
+                           col_types = col_types)
+  }
   
-  if(!file.exists(str_c(directory, new_filename))) {
-    if(str_detect(basename(path), "2020")) {
-      process_gaa_2020(path, sheet)
-    } else if(str_detect(basename(path), "2021")) {
-      print(glue::glue("reading {old_filename}, sheet {sheet}"))
-      gaa <- SheetReader::read_xlsx(path = path, skip_rows = 1) |> 
-        mutate(YEAR = 2021) |> 
-        select(base_col_names)
-      print(glue::glue("converting {old_filename} to {new_filename}"))
-      write_csv(gaa, str_c(directory, new_filename), quote = "all")
-    } else if(str_detect(basename(path), "2024")) { # temporary? fix
-      print(glue::glue("reading {old_filename}, sheet {sheet}"))
-      gaa <- SheetReader::read_xlsx(path = path,
-                                    col_types = c(rep("text", 19))) |> 
-        mutate(YEAR = 2024) |> 
-        select(base_col_names)
-      print(glue::glue("converting {old_filename} to {new_filename}"))
-      write_csv(gaa, str_c(directory, new_filename), quote = "all")
-    } else {
-      print(glue::glue("reading {old_filename}, sheet {sheet}"))
-      gaa <- SheetReader::read_xlsx(path = path) |> 
-        mutate(YEAR = parse_integer(str_extract(new_filename, "\\d{4}"))) |> 
-        select(base_col_names)
-      print(glue::glue("converting {old_filename} to {new_filename}"))
-      write_csv(gaa, str_c(directory, new_filename), quote = "all")
+  # for uniform result
+  gaa <- gaa |> 
+    mutate(YEAR = file_year) |> 
+    select(any_of(base_col_names))
+  
+  print(glue::glue("converting {xl_name} to {csv_name}"))
+  write_csv(gaa, str_c(csv_dir, csv_name), quote = "needed")
+}
+
+# main function
+process_gaa <- function(path, sheet) {
+  xl_name <- basename(path)
+  file_year <- parse_integer(str_extract(xl_name, "\\d{4}"))
+  csv_name <- paste0(file_year, "-GAA.csv")
+  
+  if(!file.exists(str_c(csv_dir, csv_name))) {
+    if(file_year != 2020) {
+      process_xlsx(path, sheet, xl_name, file_year, csv_name)
+    } else{
+      process_xls(path, sheet, xl_name, file_year, csv_name)
     }
-    print("done")
+    print("conversion done", quote = FALSE)
   }
 }
 
 # Commence conversion
-walk2(file_paths, xl_sheets, process_gaa)
+walk2(xl_paths, xl_sheets, process_gaa)
