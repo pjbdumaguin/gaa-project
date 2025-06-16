@@ -1,3 +1,5 @@
+library(scales)
+
 # Plotting the base chart-------------------------------------------------------
 # The underlying data (amount) is in thousands.
 # Bringing it back to its base form should be helpful when labeling
