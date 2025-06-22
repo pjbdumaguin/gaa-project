@@ -41,9 +41,8 @@ labels <- labs(
   expenses over the last six years",
   x = NULL,
   y = NULL,
-  caption = "based on data from dbm.gov.ph annual General Appropriations Act",
-  tag = "<img style='vertical-align:middle;'
-  src='image/logo/logo100x100.jpg' width='25'/>"
+  caption = "based on **data** from **dbm**.gov.ph annual **General Appropriations Act**",
+  tag = "<img src='image/logo/wordmark2_light_transparent.png' height='8.5'/>"
 )
 
 # Set Filter --------------------------------------------------------------
@@ -68,13 +67,13 @@ base_plot <- ggplot(confid_expen, aes(x = yr, y =  amt)) +
     ),
     filter = speckle,
     colour = '#44446c',
-    proportion = 0.05
-  )+
+    proportion = 0.075
+  ) +
   geom_text(
     aes(label = after_stat(to_php(y))),
     stat = "summary",
     fun = sum,
-    vjust = "outward",
+    vjust = -.5,
     color = "#9c9bdb",
     size = 10,
     size.unit = "pt",
@@ -97,7 +96,6 @@ theme <- theme(
   title = element_markdown(),
   axis.ticks = element_blank(),
   axis.text = element_text(color = "#7879b3"),
-  #axis.text.x = element_blank(),
   axis.text.y = element_markdown(),
   legend.position = "none",
   panel.grid.minor = element_blank(),
@@ -107,13 +105,11 @@ theme <- theme(
   panel.background = element_blank(),
   plot.background = element_rect(fill = "#131343",
                                  color = "#131343"),
-  # plot.title = element_markdown(size = 16,
-  #                               padding = unit(c(0, 0, 10, 15), "pt")),
   plot.title.position = "plot",
   plot.caption = element_markdown(size = 7,
-                                  padding = unit(c(10, 0, 0, 0), "pt")),
+                                  padding = unit(c(15, 0, 0, 0), "pt")),
   plot.caption.position = "plot",
-  plot.tag = element_markdown(padding = unit(c(0, 0, 0, 10), "pt")),
+  plot.tag = element_textbox(padding = unit(c(10, 0, 0, 0), "pt")),
   plot.tag.position = "bottomleft", 
   plot.tag.location = "plot",
   plot.margin = margin(30, 30, 20, 30)
@@ -169,7 +165,7 @@ noted_plot <- base_plot +
 noted_plot + labels + theme
 
 ggsave(
-  "image/confid-expen.png",
+  "image/overview.png",
   device = agg_png,
   width = 1080,
   height = 1080,
