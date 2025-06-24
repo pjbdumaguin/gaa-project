@@ -2,7 +2,6 @@
 
 library(tidyverse)
 library(arrow)
-library(dbplyr)
 library(duckdb)
 library(ggtext)
 library(scales)
@@ -42,7 +41,7 @@ labels <- labs(
   x = NULL,
   y = NULL,
   caption = "based on **data** from **dbm**.gov.ph annual **General Appropriations Act**",
-  tag = "<img src='image/logo/wordmark2_light_transparent.png' height='8.5'/>"
+  tag = "<img src='image/logo/philvized/wordmark2_light_transparent.png' height='8.5'/>"
 )
 
 # Set Filter --------------------------------------------------------------
@@ -165,7 +164,7 @@ noted_plot <- base_plot +
 noted_plot + labels + theme
 
 ggsave(
-  "image/overview.png",
+  "image/plot/overview.png",
   device = agg_png,
   width = 1080,
   height = 1080,
