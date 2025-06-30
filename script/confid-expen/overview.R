@@ -37,7 +37,7 @@ labels <- labs(
   title = "<b style='color:#fa7405'>■ VP Sara</b>'s **confidential funds**, 
   only a <b style='color:#fa7405'>small</b> chunk of government's",
   subtitle = "<b style='color:#9c9bdb'>■ Philippine government</b>'s confidential 
-  expenses over the last six years",
+  expenses in the last six years",
   x = NULL,
   y = NULL,
   caption = "based on **data** from **dbm**.gov.ph annual **General Appropriations Act**",
@@ -84,7 +84,8 @@ base_plot <- ggplot(confid_expen, aes(x = yr, y =  amt)) +
                "Office of the Vice-President (OVP)" = "#fa7405",
                "Department of Education (DepEd)" = "#6a2e12")
   ) +
-  scale_x_continuous(breaks = c(2020, 2023, 2025)) +
+  scale_x_continuous(breaks = c(2020, 2023, 2025),
+                     position = "top") +
   scale_y_continuous(breaks = c(1e9, 4e9, 5e9),
                      labels = to_php) 
 

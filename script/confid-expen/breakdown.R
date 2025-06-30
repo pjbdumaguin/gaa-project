@@ -102,7 +102,8 @@ gen_plots <- function(fiscal_year) {
         size = 1,
         linetype = "dotted",
         show.legend = FALSE,
-        start = "topleft"
+        start = "topleft",
+        layout = "srow"
       ),
       filter = speckle,
       colour = '#44446c',
@@ -113,20 +114,23 @@ gen_plots <- function(fiscal_year) {
       place = "bottomright",
       start = "topleft",
       # reflow = TRUE,
-      family = "Montserrat"
+      family = "Montserrat",
+      layout = "srow"
     ) +
     geom_treemap_subgroup_border(
       color = "white",
       size = 1.75,
       show.legend = FALSE,
-      start = "topleft"
+      start = "topleft",
+      layout = "srow"
     ) +
     geom_treemap_subgroup_text(
       color = "white",
       family = "Montserrat",
       fontface = "bold",
       place = "topleft",
-      start = "topleft"
+      start = "topleft",
+      layout = "srow"
     )
   
   p + labs(
@@ -190,8 +194,9 @@ gen_plots <- function(fiscal_year) {
   p
   
   ggsave(
-    filename = glue("breakdown_{fiscal_year}.png"),
-    path = "image/",
+    filename = glue("breakdown_{fiscal_year}.svg"),
+    device = svg,
+    path = "image/svg",
     scale = 2,
     width = 1080,
     height = 1350,
@@ -199,4 +204,4 @@ gen_plots <- function(fiscal_year) {
   )
 }
 
-walk(unique(confid_expen$yr), gen_plots)
+walk(sort(unique(confid_expen$yr)), gen_plots)
