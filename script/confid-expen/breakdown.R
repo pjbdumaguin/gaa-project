@@ -90,7 +90,7 @@ cust_style <- modify_style(
 # Plot --------------------------------------------------------------------
 
 gen_plots <- function(fiscal_year) {
-  # fiscal_year <- 2020 # test
+  # fiscal_year <- 2023 # test
   ce <- confid_expen |>
     filter(yr == fiscal_year) |>
     group_by(yr, dpt) |>
@@ -144,14 +144,52 @@ gen_plots <- function(fiscal_year) {
           str_detect(agy, "TPO") ~ agency,
           str_equal(dpt, agy) ~ NA,
           height < 0.0725 & agy_n == 1 ~ NA,
+          width < 0.06 & agy_n == 1 ~ NA,
+          width > height & height < 0.03 ~ NA,
+          height > width & width < 0.03 ~ NA,
           .default = agy
         )
       ),
       na.rm = TRUE,
+      min.size = 4,
       place = "bottomright",
       reflow = TRUE,
       contrast = TRUE,
       family = "Montserrat"
+    ) +
+    # agency label, too short boxes
+    geom_fit_text(
+      aes(
+        label = case_when(
+          width > height & height < 0.03 ~ agy,
+          .default = NA
+        )
+      ),
+      na.rm = TRUE,
+      padding.y = grid::unit(0.1, "mm"),
+      min.size = 1,
+      place = "right",
+      reflow = TRUE,
+      contrast = TRUE,
+      family = "Montserrat"
+    ) +
+    # agency label, rotated
+    geom_fit_text(
+      aes(
+        label = case_when(
+          height > width & width < 0.03 & !str_detect(agy, "OTS") ~ agy,
+          .default = NA
+        )
+      ),
+      na.rm = TRUE,
+      # padding.x = grid::unit(0, "mm"),
+      # padding.y = grid::unit(0.5, "mm"),
+      min.size = 2,
+      place = "center",
+      reflow = TRUE,
+      contrast = TRUE,
+      family = "Montserrat",
+      angle = 90
     ) +
     # subgroup border
     geom_rect(data = tm_ce_subgroup,
@@ -164,7 +202,7 @@ gen_plots <- function(fiscal_year) {
         label =
           case_when(
             width >= 0.25 ~ department,
-            width < 0.25 & width >= 0.050 ~ dpt,
+            between(width, 0.05, 0.25) ~ dpt,
             .default = NA
           )
       ),
@@ -192,7 +230,7 @@ gen_plots <- function(fiscal_year) {
     # amount label, center
     geom_fit_text(
       data = tm_ce_subgroup,
-      mapping = aes(label = ifelse(height >= 0.0775, to_php(amt_dpt), NA)),
+      mapping = aes(label = ifelse(height >= 0.075, to_php(amt_dpt), NA)),
       na.rm = TRUE,
       place = "centre",
       contrast = TRUE,
@@ -202,7 +240,7 @@ gen_plots <- function(fiscal_year) {
     # amount label, bottom
     geom_fit_text(
       data = tm_ce_subgroup,
-      mapping = aes(label = ifelse(height <= 0.075 & width >= 0.055,
+      mapping = aes(label = ifelse(height <= 0.075 & width >= 0.05,
                                    to_php(amt_dpt), NA)),
       na.rm = TRUE,
       place = "bottom",
@@ -218,8 +256,8 @@ gen_plots <- function(fiscal_year) {
         aes(x = x, y = y,
             label = 
               case_when(
-                between(height, 0.055, 0.08) & width <= 0.054 ~ to_php(amt_dpt),
-                height <= 0.055 & width <= 0.054 ~ glue("{dpt}: {to_php(amt_dpt)}"),
+                between(height, 0.055, 0.08) & width <= 0.05 ~ to_php(amt_dpt),
+                height <= 0.055 & width <= 0.05 ~ glue("{dpt}: {to_php(amt_dpt)}"),
                 .default = NA
                 )
       ), 
@@ -234,9 +272,9 @@ gen_plots <- function(fiscal_year) {
       # segment.curvature = -1e-20,
       # segment.ncp = 3,
       # segment.angle = 40,
-      segment.square = TRUE,
-      segment.inflect = TRUE,
-      force = 1,
+      # segment.square = TRUE,
+      # segment.inflect = TRUE,
+      force = 1.1,
       force_pull = 0,
       box.padding = 0.1,
       label.padding = 0,
