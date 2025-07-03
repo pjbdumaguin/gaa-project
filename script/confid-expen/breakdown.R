@@ -131,11 +131,16 @@ gen_plots <- function(fiscal_year) {
       ymax = ymax
     )) +
     # agency border
-    geom_rect(
-      aes(fill = dpt),
-      color = "gray90",
-      linetype = "dotted",
-      show.legend = FALSE
+    with_custom(
+      geom_rect(
+        aes(fill = dpt),
+        color = "gray90",
+        linetype = "dotted",
+        show.legend = FALSE
+      ),
+      filter = speckle,
+      colour = '#44446c',
+      proportion = 0.075
     ) +
     # agency label
     geom_fit_text(
@@ -159,12 +164,9 @@ gen_plots <- function(fiscal_year) {
     ) +
     # agency label, too short boxes
     geom_fit_text(
-      aes(
-        label = case_when(
-          width > height & height < 0.03 ~ agy,
-          .default = NA
-        )
-      ),
+      aes(label = case_when(
+        width > height & height < 0.03 ~ agy, .default = NA
+      )),
       na.rm = TRUE,
       padding.y = grid::unit(0.1, "mm"),
       min.size = 1,
@@ -198,14 +200,12 @@ gen_plots <- function(fiscal_year) {
     # department label full or acronym
     geom_fit_text(
       data = tm_ce_subgroup,
-      mapping = aes(
-        label =
-          case_when(
-            width >= 0.25 ~ department,
-            between(width, 0.05, 0.25) ~ dpt,
-            .default = NA
-          )
-      ),
+      mapping = aes(label =
+                      case_when(
+                        width >= 0.25 ~ department,
+                        between(width, 0.05, 0.25) ~ dpt,
+                        .default = NA
+                      )),
       na.rm = TRUE,
       place = "topleft",
       reflow = TRUE,
@@ -218,7 +218,8 @@ gen_plots <- function(fiscal_year) {
     # department label, rotated
     geom_fit_text(
       data = tm_ce_subgroup,
-      mapping = aes(label = ifelse(height > width & width < 0.050, dpt, NA)),
+      mapping = aes(label = ifelse(height > width &
+                                     width < 0.050, dpt, NA)),
       na.rm = TRUE,
       place = "center",
       reflow = TRUE,
@@ -240,8 +241,9 @@ gen_plots <- function(fiscal_year) {
     # amount label, bottom
     geom_fit_text(
       data = tm_ce_subgroup,
-      mapping = aes(label = ifelse(height <= 0.075 & width >= 0.05,
-                                   to_php(amt_dpt), NA)),
+      mapping = aes(label = ifelse(
+        height <= 0.075 & width >= 0.05, to_php(amt_dpt), NA
+      )),
       na.rm = TRUE,
       place = "bottom",
       contrast = TRUE,
@@ -252,15 +254,18 @@ gen_plots <- function(fiscal_year) {
     # amount label, outside
     geom_label_repel(
       data = tm_ce_subgroup,
-      mapping = 
-        aes(x = x, y = y,
-            label = 
-              case_when(
-                between(height, 0.055, 0.08) & width <= 0.05 ~ to_php(amt_dpt),
-                height <= 0.055 & width <= 0.05 ~ glue("{dpt}: {to_php(amt_dpt)}"),
-                .default = NA
-                )
-      ), 
+      mapping =
+        aes(
+          x = x,
+          y = y,
+          label =
+            case_when(
+              between(height, 0.055, 0.08) & width <= 0.05 ~ to_php(amt_dpt),
+              height <= 0.055 &
+                width <= 0.05 ~ glue("{dpt}: {to_php(amt_dpt)}"),
+              .default = NA
+            )
+        ),
       color = "white",
       fill = tm_ce_subgroup$color,
       size = 2.75,
