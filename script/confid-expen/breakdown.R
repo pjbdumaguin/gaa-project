@@ -90,7 +90,7 @@ cust_style <- modify_style(
 # Plot --------------------------------------------------------------------
 
 gen_plots <- function(fiscal_year) {
-  # fiscal_year <- 2023 # test
+  fiscal_year <- 2025 # test
   ce <- confid_expen |>
     filter(yr == fiscal_year) |>
     group_by(yr, dpt) |>
