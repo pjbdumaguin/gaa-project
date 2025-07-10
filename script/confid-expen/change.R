@@ -19,7 +19,7 @@ gaa <- open_dataset(path)
 confid_expen <- gaa |>
   to_duckdb() |>
   select(yr = YEAR, ends_with("DSC"), AMT) |>
-  rename_with( ~ str_extract(.x, "UACS_(.+)_DSC", group = 1), ends_with("_DSC")) |>
+  rename_with(~ str_extract(.x, "UACS_(.+)_DSC", group = 1), ends_with("_DSC")) |>
   rename_with(tolower) |>
   filter(sobj == "Confidential Expenses", amt > 0) |>
   collect()
@@ -87,30 +87,43 @@ ce_gainers <- confid_expen |>
     avg_change = mean(change, na.rm = TRUE),
     .by = c(dpt, agy)
   ) |>
-  filter(avg_change > 0 | avg_change < 0) |>
+  # filter(avg_change > 0 | avg_change < 0) |>
   mutate(id = get_id(dpt, agy)) |>
   mutate(id = fct_reorder(id, desc(avg_change))) |>
   arrange(desc(avg_change))
 
 doj_gain <- ce_gainers |>
-  filter(yr %in% c(2022, 2025), 
+  filter(yr %in% c(2022, 2025),
          str_detect(id, "\\*\\*DOJ  \nOffice of the Secretary\\*\\*")) |>
   reframe(amt = amt[yr == 2025] - amt[yr == 2022]) |>
   pull() |>
   to_php()
 
 omb_loss_prc <- ce_gainers |>
-  filter(yr %in% c(2022, 2025), 
+  filter(yr %in% c(2022, 2025),
          str_detect(id, "\\*\\*OMB  \nOffice of the Ombudsman\\*\\*")) |>
   reframe(amt_prc = (amt[yr == 2025] - amt[yr == 2022]) / amt[yr == 2022]) |>
   pull() |>
   abs() |>
   percent(accuracy = 0.01)
 
+speckle <- function(x, colour, proportion) {
+  raster_dim <- dim(x)
+  n_pixels <- prod(raster_dim)
+  n_speckles <- n_pixels * proportion
+  x[sample(length(x), n_speckles)] <- farver::encode_native(colour)
+  x
+}
+
 ce_gainers |>
-  filter(str_detect(id, "DOJ|OMB")) |>
+  filter(str_detect(id, "DOJ|OMB"), !str_detect(agy, "Immigration")) |>
   ggplot(aes(yr, amt)) +
-  geom_col(fill = "#9c9bdb") +
+  with_custom(
+    geom_col(fill = "#9c9bdb"),
+    filter = speckle,
+    colour = '#44446c',
+    proportion = 0.075
+  ) +
   geom_smooth(color = "#fa7405",
               method = "lm",
               se = FALSE) +
@@ -126,11 +139,13 @@ ce_gainers |>
   labs(
     x = NULL,
     y = NULL,
-    title = glue("**{#fa7405 ↗}DOJ's Confidential Funds Skyrocket;  
-                 {#fa7405 ↘}OMB's Allocation Plummets <omb_loss_prc>**",
-                 .open = "<",
-                 .close = ">"),
-    subtitle = "The Department of Justice and its attached agencies have been awarded a significant increase in confidential fund allocations, with the Office of the Secretary alone ballooning to \u20b11.525 billion. In contrast, the Office of the Ombudsman has experienced a loss of 98.06% of its confidential fund budget since the administration transition in 2022.",
+    title = glue(
+      "**{#fa7405 ↗}DOJ's Confidential Funds Skyrocket;  
+      {#fa7405 ↘}OMB's Allocation Plummets ▼<omb_loss_prc>**",
+      .open = "<",
+      .close = ">"
+    ),
+    subtitle = "The **Department of Justice** and its attached agencies have been awarded a **significant increase** in **confidential fund** allocations, with the **Office of the Secretary** alone ballooning to **\u20b11.525 billion**. In contrast, the **Office of the Ombudsman** has experienced a **loss** of **98.06%** of its confidential fund budget since the administration transition in 2022.",
     caption = "based on data from _dbm.gov.ph_ annual **General Appropriations Act**",
     tag = "![](image/logo/philvized/symbol_light_transparent.png)**philvized**"
   ) +
@@ -149,7 +164,7 @@ ce_gainers |>
     panel.background = element_rect(color = "#9c9bdb", fill = NA),
     panel.grid = element_blank(),
     plot.background = element_rect(fill = "#131343", colour = NA),
-    plot.title = element_marquee(),
+    plot.title = element_marquee(size = 20),
     plot.title.position = "plot",
     plot.subtitle = element_marquee(size = 10, width = 1),
     plot.caption = element_marquee(hjust = 1),
@@ -159,8 +174,11 @@ ce_gainers |>
     plot.tag.location = "plot",
     plot.margin = margin(20, 20, 20, 20),
     strip.background = element_blank(),
-    strip.text = element_marquee(color = "#9c9bdb", width = 1,
-                                 margin = margin(0,0,0,0))
+    strip.text = element_marquee(
+      color = "#9c9bdb",
+      width = 1,
+      margin = margin(0, 0, 0, 0)
+    )
   )
 
 ggsave(
