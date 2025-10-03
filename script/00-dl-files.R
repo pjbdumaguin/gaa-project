@@ -19,22 +19,37 @@ get_links <- function(page, pattern) {
 }
 
 # This works.
-gaa_pages <- get_links(page = paste0(base_page, "/index.php/budget"),
-                       pattern = "/general-appropriations") |> 
+budget_doc_pages <- get_links(
+  page = paste0(base_page, "/index.php/budget"),
+  pattern = "/general-appropriations|\\d/national-expenditure"
+) |>
   paste0(base_page, link = _)
 
+# remove repeated links
+budget_doc_pages <- budget_doc_pages |> unique()
+
 # Get the download link from each page, take the first result
-dl_links <- gaa_pages |> 
+dl_links <- budget_doc_pages |> 
   map_chr(\(page) get_links(page, "csv|xlsx?") |> first()) |> 
   paste0(base_page, link = _)
 
 # Prepare the directory for downloading files
-directory <- "raw-file/gaa/"
+directories <- paste0("raw-file/", c("gaa", "nep"), "/")
 
-if (!dir.exists(directory)) dir.create(directory, recursive = TRUE)
+walk(directories, \(directory) {
+  if (!dir.exists(directory)) {
+    dir.create(directory, recursive = TRUE)
+  }
+})
 
-destfiles <- paste0(directory, basename(dl_links))
+destfiles <- 
+  if_else(
+    str_detect(dl_links, "GAA"),
+  paste0(directories[1], basename(dl_links)),
+  paste0(directories[2], basename(dl_links))
+  )
 
+# curl's multi_download function automatically checks if a file already exists
 curl::multi_download(urls = dl_links,
                      destfiles = destfiles,
                      resume = TRUE)
