@@ -1,7 +1,7 @@
 library(tidyverse)
 library(readxl)
 
-# Prepare the files to be converted
+# Prepare the files to be converted----
 xl_paths <- list.files(
   path = "raw-file",
   pattern = ".xlsx?$",
@@ -48,9 +48,9 @@ walk(directories, \(directory) {
   }
 })
 
-## Convert downloaded excel files
+## Convert downloaded excel files----
 
-# Processes older excel format, has multiple sheets
+# Processes older excel format----
 process_xls <- function(xl_path, xl_sheet, csv_path) {
   # initialize sheet number object
   # this will be used to track whether the sheet being read is first or not
@@ -83,18 +83,17 @@ process_xls <- function(xl_path, xl_sheet, csv_path) {
 
       message(sprintf("appending %s to %s", sheet, basename(csv_path)))
       is_first_sheet <- track_sheet != 1
-      write_csv(
+      write_excel_csv(
         xl_doc,
         csv_path,
-        append = is_first_sheet, # FALSE if first; retaining column names
-        quote = "needed"
+        append = is_first_sheet # FALSE if first; retaining column names
       )
       track_sheet <<- track_sheet + 1
     }
   )
 }
 
-# using memory efficient SheetReader package to load the excel files.
+# using memory efficient SheetReader package to load the excel files.----
 # cons: type guessing is not as robust as readxl, parsing it all as text
 # xlsx budget docs are less complicated; only has one sheet
 process_xlsx <- function(xl_path, xl_sheet, csv_path) {
@@ -117,11 +116,12 @@ process_xlsx <- function(xl_path, xl_sheet, csv_path) {
   }
 
   message(sprintf("converting %s to %s", basename(xl_path), basename(csv_path)))
-  write_csv(doc, csv_path, quote = "needed")
+  write_excel_csv(doc, csv_path)
 }
 
-# main function
+# main function----
 process_doc <- function(xl_path, xl_sheet) {
+  # prepare csv filename and path
   csv_name <- basename(xl_path)
   year <- str_extract(csv_name, "\\d{4}")
   type <- str_extract(csv_name, "GAA|NEP")
@@ -144,5 +144,5 @@ process_doc <- function(xl_path, xl_sheet) {
   }
 }
 
-# Commence conversion
+# Commence conversion----
 walk2(xl_paths, xl_sheets, process_doc)
